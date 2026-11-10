@@ -2,7 +2,7 @@
 
 switched.cloud 每日 Cloud Token 自动领取 —— **只放 GitHub Actions 工作流**。
 
-代码本体在私有库 [`jyucoeng/auto-switched-private`](https://github.com/jyucoeng/auto-switched-private)，
+代码本体在私有库 [`doraemon6789/auto-switched-private`](https://github.com/doraemon6789/auto-switched-private)，
 工作流运行时通过 Personal Access Token 检出。公开库跑 Actions 不计费。
 
 ---
@@ -307,3 +307,4 @@ requests==2.34.2
 - 每日上限 **25 次 / 50 token**
 - 每个 token 换取 1 天 Runtime（Plus 会员 2 天）
 - 公平使用条款：禁止挖矿、DDoS / 端口扫描 / 爆破、垃圾信息，违规会封号
+
