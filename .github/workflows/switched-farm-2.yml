@@ -55,7 +55,8 @@ on:
 # 组名带工作流名，所以多账号之间互不取消。
 concurrency:
   group: Switched_Token_Farm_${{ github.workflow }}
-  cancel-in-progress: true
+  # 手动触发不取消正在跑的 run：新 run 排队等待，避免打断续期/签到半路
+  cancel-in-progress: false
 
 permissions:
   contents: write   # 需要提交 switched/<N>/time.txt
@@ -246,9 +247,25 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$TIME_FILE"
-          git diff --cached --quiet || git commit -m "chore: 账号 #${ACCOUNT_ID} 执行时间 $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')"
-          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
-          git push || echo "推送失败（可能无变更或权限不足）"
+          if git diff --cached --quiet; then
+            echo "time.txt 无变化，无需提交"
+          else
+            # 并发安全提交：每次以最新远端为基准重建提交，重试 3 次；失败只告警
+            for _try in 1 2 3; do
+              git fetch origin "${GITHUB_REF_NAME}"
+              git reset --soft FETCH_HEAD
+              git commit -m "chore: 账号 #${ACCOUNT_ID} 执行时间 $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')"
+              if git push origin HEAD:"${GITHUB_REF_NAME}"; then
+                echo "执行时间已提交"
+                break
+              fi
+              echo "第 $_try 次推送冲突，重取远端后重试"
+              sleep 3
+              if [ "$_try" = "3" ]; then
+                echo "::warning::time.txt 3 次推送均失败，本次未更新（不影响本次执行结果）"
+              fi
+            done
+          fi
 
       - name: 清理旧运行
         if: always()
